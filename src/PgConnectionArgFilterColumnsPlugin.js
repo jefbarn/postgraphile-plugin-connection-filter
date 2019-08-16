@@ -1,4 +1,7 @@
-module.exports = function PgConnectionArgFilterColumnsPlugin(builder) {
+module.exports = function PgConnectionArgFilterColumnsPlugin(
+  builder,
+  { connectionFilterOperatorNames }
+) {
   builder.hook("GraphQLInputObjectType:fields", (fields, build, context) => {
     const {
       extend,
@@ -26,7 +29,15 @@ module.exports = function PgConnectionArgFilterColumnsPlugin(builder) {
     const attrByFieldName = introspectionResultsByKind.attribute
       .filter(attr => attr.classId === table.id)
       .filter(attr => pgColumnFilter(attr, build, context))
-      .filter(attr => !omit(attr, "filter"))
+      .filter(
+        attr =>
+          !omit(
+            attr,
+            (connectionFilterOperatorNames &&
+              connectionFilterOperatorNames["filter"]) ||
+              "filter"
+          )
+      )
       .reduce((memo, attr) => {
         const fieldName = inflection.column(attr);
         memo[fieldName] = attr;

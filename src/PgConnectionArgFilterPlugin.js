@@ -6,6 +6,7 @@ module.exports = function PgConnectionArgFilterPlugin(
     connectionFilterSetofFunctions,
     connectionFilterAllowNullInput,
     connectionFilterAllowEmptyObjectInput,
+    connectionFilterOperatorNames,
   }
 ) {
   // Add `filter` input argument to connection and simple collection types
@@ -36,8 +37,13 @@ module.exports = function PgConnectionArgFilterPlugin(
       const shouldAddFilter = isPgFieldConnection || isPgFieldSimpleCollection;
       if (!shouldAddFilter) return args;
 
+      const filterArgName =
+        (connectionFilterOperatorNames &&
+          connectionFilterOperatorNames["filter"]) ||
+        "filter";
+
       if (!source) return args;
-      if (omit(source, "filter")) return args;
+      if (omit(source, filterArgName)) return args;
 
       if (source.kind === "procedure") {
         if (!(source.tags.filterable || connectionFilterSetofFunctions)) {
@@ -84,9 +90,9 @@ module.exports = function PgConnectionArgFilterPlugin(
       addArgDataGenerator(function connectionFilter(args) {
         return {
           pgQuery: queryBuilder => {
-            if (args.hasOwnProperty("filter")) {
+            if (args.hasOwnProperty(filterArgName)) {
               const sqlFragment = connectionFilterResolve(
-                args.filter,
+                args[filterArgName],
                 queryBuilder.getTableAlias(),
                 filterTypeName,
                 queryBuilder,
@@ -104,7 +110,7 @@ module.exports = function PgConnectionArgFilterPlugin(
       return extend(
         args,
         {
-          filter: {
+          [filterArgName]: {
             description:
               "A filter to be used in determining which values should be returned by the collection.",
             type: FilterType,
